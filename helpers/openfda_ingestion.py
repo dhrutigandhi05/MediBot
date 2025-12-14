@@ -1,6 +1,7 @@
 from typing import List, Dict, Optional
 import requests
 import json
+from helpers.raw_storage import write_text
 
 openFDA_URL = "https://api.fda.gov/drug/label.json"
 default_fields = [
@@ -11,21 +12,27 @@ default_fields = [
     "contraindications",
 ]
 
-def fetch_openfda_records(max_pages: int = 20, limit: int = 100, search: str = "openfda.brand_name:*", fields: Optional[List[str]] = None, timeout: int = 60) -> List[Dict]:
+def fetch_openfda_records(max_pages: int = 20, limit: int = 100, search: str = "openfda.brand_name:*", fields: Optional[List[str]] = None, timeout: int = 60, raw_base_path: Optional[str] = None) -> List[Dict]:
     fields = fields or default_fields
 
     records: List[Dict] = []
     skip = 0
 
-    for _ in range(max_pages):
+    
+    for page in range(max_pages):
         params = {"search": search, "limit": limit, "skip": skip}
         resp = requests.get(openFDA_URL, params=params, timeout=timeout)
 
-        # openFDA sometimes uses 404 when paging past the end
         if resp.status_code == 404:
             break
 
         resp.raise_for_status()
+
+        # save the raw page JSON if a base path is provided
+        if raw_base_path is not None:
+            raw_page_path = f"{raw_base_path}/page={page:04d}.json"
+            write_text(raw_page_path, resp.text)
+
         data = resp.json()
         results = data.get("results", [])
         if not results:
