@@ -22,7 +22,7 @@ def build_logreg_router(
                     stop_words="english", # remove common english stopwords
                     min_df=min_df, # ignore very rare terms
                     max_df=max_df, # ignore overly common terms
-                    subliner_tf=True, # use log scaling to term frequencies
+                    sublinear_tf=True, # use log scaling to term frequencies
                     max_features=word_max_features, # limit vocab size
                 ),
             ),
