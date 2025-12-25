@@ -15,7 +15,7 @@ def build_classifier_training_df(
     # load chunked data from delta table and keep only needed columns
     df = (
         spark.table(source_table)
-        .select("chunk_id", "category", "title", "synonyms", "chunk_text")
+        .select("doc_id", "chunk_id", "category", "title", "synonyms", "chunk_text")
         .where(F.col("category").isin(allowed_labels))
     )
 
@@ -32,7 +32,7 @@ def build_classifier_training_df(
                 F.coalesce(F.col("chunk_trim"), F.lit("")),
             ),
         )
-        .select("chunk_id", F.col("category").alias("label"), "train_text")
+        .select("doc_id", "chunk_id", F.col("category").alias("label"), "train_text")
         .where(F.length(F.col("train_text")) > 0)
     )
 
