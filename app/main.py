@@ -17,7 +17,7 @@ templates = Jinja2Templates(directory="templates")
 # request body model
 class AskRequest(BaseModel):
     question: str = Field(..., min_length=1)
-    threshold: float = 0.80
+    threshold: float = 0.60
     top_k: int = 5
     pool_k: int = 50
     max_dist: float = 0.85
