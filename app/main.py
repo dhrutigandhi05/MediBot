@@ -1,13 +1,11 @@
-import os
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel, Field
 from app.databricks_client import DatabricksClient
 from llm.llm import answer_with_llm
-from app.config import settings
 from app.rag import filter_chunks_by_route, _first_prediction
-from fastapi import FastAPI, HTTPException, Request, Form
-from fastapi.responses import HTMLResponse, JSONResponse
+from fastapi import FastAPI, HTTPException, Request
+from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
@@ -37,10 +35,6 @@ class AskResponse(BaseModel):
 def ui(request: Request):
     return templates.TemplateResponse("index.html", {"request": request})
 
-@app.get("/health")
-def health():
-    return {"status": "ok"}
-
 @app.post("/ask", response_model=AskResponse)
 def ask(req: AskRequest):
     q = (req.question or "").strip()
@@ -53,7 +47,7 @@ def ask(req: AskRequest):
     except Exception as e:
         raise HTTPException(status_code=502, detail=f"Classifier call failed: {e}")
 
-    cls_pred = _extract_prediction(cls_resp)
+    cls_pred = _first_prediction(cls_resp)
     route = cls_pred.get("route", "all")
     confidence = float(cls_pred.get("confidence", 0.0))
 
@@ -63,12 +57,11 @@ def ask(req: AskRequest):
     except Exception as e:
         raise HTTPException(status_code=502, detail=f"Retriever call failed: {e}")
 
-    ret_pred = _extract_prediction(ret_resp)
+    ret_pred = _first_prediction(ret_resp)
     chunks = ret_pred.get("chunks") or []
 
     # apply route filter
-    routed_chunks = _filter_chunks_by_route(chunks, route)
-
+    routed_chunks = filter_chunks_by_route(chunks, route)
     # fallback if route filtering removes everything
     if not routed_chunks:
         routed_chunks = chunks
@@ -84,31 +77,3 @@ def ask(req: AskRequest):
         chunks_used=len(routed_chunks),
         chunks=routed_chunks,
     )
-
-@app.post("/chat")
-def chat(msg: str = Form(...)):
-    q = (msg or "").strip()
-    if not q:
-        return JSONResponse({"answer": "Please type a question."})
-
-    # Reuse your existing /ask logic directly
-    try:
-        # Call your internal pipeline the same way your /ask does
-        cls_resp = dbc.classify(q, settings.CLASSIFIER_THRESHOLD)
-        cls_pred = _first_prediction(cls_resp)
-        route = cls_pred.get("route", "all")
-        confidence = float(cls_pred.get("confidence", 0.0))
-
-        ret_resp = dbc.retrieve(q, settings.TOP_K, settings.POOL_K, settings.MAX_DIST)
-        ret_pred = _first_prediction(ret_resp)
-        chunks = ret_pred.get("chunks") or []
-
-        routed_chunks = _filter_chunks_by_route(chunks, route)
-        if not routed_chunks:
-            routed_chunks = chunks
-
-        answer = answer_with_llm(q, routed_chunks)
-
-        return JSONResponse({"answer": answer})
-    except Exception as e:
-        raise HTTPException(status_code=502, detail=f"Chat failed: {e}")

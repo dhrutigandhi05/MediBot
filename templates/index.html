@@ -63,24 +63,23 @@
 					$("#messageFormeight").append(userHtml);
 
 					$.ajax({
-						data: {
-							msg: rawText,	
-						},
-						type: "POST",
-						url: "/chat",
-					}).done(function(res) {
+                        type: "POST",
+                        url: "/ask",
+                        contentType: "application/json",
+                        data: JSON.stringify({ question: rawText })
+                    }).done(function(res) {
                         const answer = (res && res.answer) ? res.answer : "";
-                        const safe = $("<div>").text(answer).html(); // escape to prevent HTML injection
+                        const safe = $("<div>").text(answer).html();
                         const botHtml = `
-                        <div class="d-flex justify-content-start mb-4">
+                            <div class="d-flex justify-content-start mb-4">
                             <div class="img_cont_msg">
-                            <img src="https://cdn-icons-png.flaticon.com/512/387/387569.png" class="rounded-circle user_img_msg">
+                                <img src="https://cdn-icons-png.flaticon.com/512/387/387569.png" class="rounded-circle user_img_msg">
                             </div>
                             <div class="msg_cotainer">
-                            ${safe.replace(/\n/g, "<br>")}
-                            <span class="msg_time">${str_time}</span>
+                                ${safe.replace(/\n/g, "<br>")}
+                                <span class="msg_time">${str_time}</span>
                             </div>
-                        </div>`;
+                            </div>`;
                         $("#messageFormeight").append($.parseHTML(botHtml));
                     });
 					event.preventDefault();
