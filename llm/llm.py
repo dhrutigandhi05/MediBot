@@ -6,9 +6,9 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-MODEL_NAME = os.getenv("LLM_MODEL_NAME")
+MODEL_NAME = os.getenv("MODEL_NAME")
 HF_TOKEN = os.getenv("HF_TOKEN")
-MAX_NEW_TOKENS = int(os.getenv("LLM_MAX_NEW_TOKENS", "256"))
+MAX_NEW_TOKENS = int(os.getenv("LLM_MAX_NEW_TOKENS"))
 
 _tokenizer = None # saved tokenizer
 _pipe = None # saved pipeline
