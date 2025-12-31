@@ -1,14 +1,11 @@
-import os
 import torch
 from transformers import AutoModelForCausalLM, AutoTokenizer, pipeline
 from llm.prompt import SYSTEM_PROMPT
-from dotenv import load_dotenv
+from app.config import settings
 
-load_dotenv()
-
-MODEL_NAME = os.getenv("MODEL_NAME")
-HF_TOKEN = os.getenv("HF_TOKEN")
-MAX_NEW_TOKENS = int(os.getenv("LLM_MAX_NEW_TOKENS"))
+MODEL_NAME = settings.MODEL_NAME
+HF_TOKEN = settings.HF_TOKEN
+MAX_NEW_TOKENS = settings.MAX_NEW_TOKENS 
 
 _tokenizer = None # saved tokenizer
 _pipe = None # saved pipeline

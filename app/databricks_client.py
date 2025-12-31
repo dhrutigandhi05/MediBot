@@ -1,51 +1,36 @@
-import os
 import requests
-from dotenv import load_dotenv
-
-load_dotenv()
+from app.config import settings
 
 class DatabricksClient:
     def __init__(self):
-        host = os.getenv("DATABRICKS_HOST")
-        token = os.getenv("DATABRICKS_TOKEN")
-        classifier = os.getenv("CLASSIFIER_ENDPOINT")
-        retriever = os.getenv("RETRIEVER_ENDPOINT")
-
-        if not host:
-            raise RuntimeError("Missing DATABRICKS_HOST")
-        if not token:
-            raise RuntimeError("Missing DATABRICKS_TOKEN")
-        if not classifier:
-            raise RuntimeError("Missing CLASSIFIER_ENDPOINT")
-        if not retriever:
-            raise RuntimeError("Missing RETRIEVER_ENDPOINT")
-
-        self.host = host.rstrip("/")  # remove trailing /
-        self.token = token
-        self.classifier = classifier
-        self.retriever = retriever
+        self.host = settings.DATABRICKS_HOST  # base host
+        self.token = settings.DATABRICKS_TOKEN  # auth token
+        self.classifier = settings.CLASSIFIER_ENDPOINT  # classifier endpoint name
+        self.retriever = settings.RETRIEVER_ENDPOINT  # retriever endpoint name
         self.headers = {
             "Authorization": f"Bearer {self.token}",
             "Content-Type": "application/json",
-        }
+        }  # request headers
 
     def _invoke(self, endpoint: str, record: dict) -> dict:
-        url = f"{self.host}/serving-endpoints/{endpoint}/invocations"
-        payload = {"dataframe_records": [record]}  # 1-row dataframe
-        response = requests.post(url, headers=self.headers, json=payload, timeout=60)
-        response.raise_for_status()
+        url = f"{self.host}/serving-endpoints/{endpoint}/invocations"  # serving url
+        payload = {"dataframe_records": [record]}  # single row
+        response = requests.post(url, headers=self.headers, json=payload, timeout=60)  # call endpoint
+        response.raise_for_status()  # raise on http error
+        
         return response.json()
 
-    def classify(self, question: str, threshold: float = 0.80) -> dict:
-        return self._invoke(self.classifier, {"question": question, "threshold": float(threshold)})
-
-    def retrieve(self, question: str, top_k: int = 5, pool_k: int = 50, max_dist: float = 0.85) -> dict:
+    def classify(self, question: str, threshold: float | None = None) -> dict:
+        t = settings.CLASSIFIER_THRESHOLD if threshold is None else float(threshold)  # pick threshold
+        
+        return self._invoke(self.classifier, {"question": question, "threshold": t})
+    
+    def retrieve(self, question: str, top_k: int | None = None, pool_k: int | None = None, max_dist: float | None = None) -> dict:
+        tk = settings.TOP_K if top_k is None else int(top_k)  # pick top_k
+        pk = settings.POOL_K if pool_k is None else int(pool_k)  # pick pool_k
+        md = settings.MAX_DIST if max_dist is None else float(max_dist)  # pick max_dist
+        
         return self._invoke(
             self.retriever,
-            {
-                "question": question,
-                "top_k": int(top_k),
-                "pool_k": int(pool_k),
-                "max_dist": float(max_dist),
-            },
+            {"question": question, "top_k": tk, "pool_k": pk, "max_dist": md},
         )
