@@ -33,19 +33,6 @@ class AskResponse(BaseModel):
     chunks_used: int
     chunks: List[Dict[str, Any]]
 
-def _extract_prediction(resp: Dict[str, Any]) -> Dict[str, Any]:
-    preds = resp.get("predictions") or []
-    
-    if not preds:
-        return {}
-    
-    return preds[0]
-
-def _filter_chunks_by_route(chunks: List[Dict[str, Any]], route: str) -> List[Dict[str, Any]]:
-    if route in (None, "", "all"):
-        return chunks
-    return [c for c in chunks if (c.get("category") or "").lower() == route.lower()]
-
 @app.get("/ui", response_class=HTMLResponse)
 def ui(request: Request):
     return templates.TemplateResponse("index.html", {"request": request})
